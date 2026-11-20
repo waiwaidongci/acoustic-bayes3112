@@ -14,7 +14,13 @@ from src.services.domain_validation import validate_record
 
 def seed_values(kind,index,batch,rng):
     if kind=='gaussian':
-        cls=index%3;return {'rms':round(max(.1,rng.gauss([1.2,3.0,2.0][cls]+batch*.08,.35)),3),'centroid':round(max(100,rng.gauss([900,1600,2300][cls],170)),2),'kurtosis':round(max(.1,rng.gauss([2.8,5.2,3.9][cls],.45)),3),'label':['正常','轴承磨损','转子偏心'][cls]}
+        cls=index%3
+        vals={'rms':round(max(.1,rng.gauss([1.2,3.0,2.0][cls]+batch*.08,.35)),3),'centroid':round(max(100,rng.gauss([900,1600,2300][cls],170)),2),'kurtosis':round(max(.1,rng.gauss([2.8,5.2,3.9][cls],.45)),3),'label':['正常','轴承磨损','转子偏心'][cls]}
+        # 每批固定插入几件缺测件：带故障标签与至少一项实测，缺项留空保留
+        missing_pattern={0:['centroid'],1:['rms','kurtosis'],2:['kurtosis'],3:['rms']}
+        if index in missing_pattern:
+            for f in missing_pattern[index]:vals[f]=None
+        return vals
     if kind=='density':
         cls=index%3
         if index%19==0:return {'temperature':round(rng.uniform(12,42),2),'humidity':round(rng.uniform(12,92),2),'particles':round(rng.uniform(4,140),2)}

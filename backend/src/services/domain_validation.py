@@ -1,20 +1,31 @@
 import math
 from ..config.settings import CONFIG
+def _is_missing(v):
+    return v is None or (isinstance(v,str) and not v.strip())
 def validate_record(values):
     out={}
+    measured=0
+    allow_missing=CONFIG['algorithm']=='gaussian'
     for key,label,kind in CONFIG['fields']:
         v=values.get(key)
         if kind=='number':
+            # 缺测件：仅声检（gaussian）域允许特征空值，以 None 保留缺项，不做插补
+            if allow_missing and _is_missing(v):
+                out[key]=None
+                continue
             if isinstance(v,bool):raise ValueError(label+'必须为数值')
             try:v=float(v)
             except (TypeError,ValueError):raise ValueError(label+'必须为数值')
             if not math.isfinite(v):raise ValueError(label+'必须是有限数值')
+            out[key]=v;measured+=1
         else:
             if not isinstance(v,str) or not v.strip() or len(v)>600:raise ValueError(label+'不能为空且最多600字符')
             v=v.strip()
         out[key]=v
     kind=CONFIG['algorithm']
-    if kind=='gaussian' and (out['rms']<0 or out['centroid']<0 or out['kurtosis']<0):raise ValueError('声学特征不可为负')
+    if kind=='gaussian':
+        if out.get('label') and measured==0:raise ValueError('缺测件至少保留一项实测声学特征，不能全部缺测')
+        if any(out[f] is not None and out[f]<0 for f in ('rms','centroid','kurtosis')):raise ValueError('声学特征不可为负')
     if kind=='density' and (not 0<=out['humidity']<=100 or out['particles']<0):raise ValueError('湿度需在0–100且颗粒浓度非负')
     if kind=='transition':
         parts=[x.strip() for x in out['path'].split('>')]

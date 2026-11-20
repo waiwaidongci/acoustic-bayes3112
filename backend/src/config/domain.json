@@ -7,7 +7,7 @@
   "entities": "AcousticBatch / AcousticSample / ClassifierRun / InspectionNote",
   "scenario": "合成声学特征→故障类型判读→复检批注；真实训练/验证分离、训练内标准化、类先验展示",
   "visual": "声学频带档案、焦橙",
-  "oracle": "对sklearn GaussianNB预测；验证行不参与fit；稀有类不足拒绝",
+  "oracle": "类条件高斯均值/全协方差由训练实测值估计；缺项 EM 条件分布迭代；验证件只用实测维度算后验；同测缺口拒绝",
   "frontend": 18245,
   "backend": 19245,
   "db_port": 17745,
@@ -46,6 +46,12 @@
       "text"
     ]
   ],
+  "nullable_features": [
+    "rms",
+    "centroid",
+    "kurtosis"
+  ],
+  "missing_rule": "声学特征允许缺测（留空即缺项并保留），但每件至少保留一项实测值，故障标签必填；全缺测件拒绝入批。",
   "params": [
     [
       "folds",
@@ -68,18 +74,20 @@
   "ink": "oklch(30% .04 48)",
   "accent": "oklch(55% .15 45)",
   "paper": "oklch(94% .025 75)",
-  "principle": "分层交叉验证，每折只在训练行拟合均值与方差；后验概率是模型分布，不是检修结论。",
+  "principle": "分层交叉验证，每折只在训练行用实测值拟合均值与协方差；缺测件带标签入批，训练缺项按类条件高斯 EM 迭代补全，验证件只用实测维度算后验。",
   "default_parameters": {
     "folds": 3,
     "smoothing": 1e-09
   },
-  "method_label": "GaussianNB与分层交叉验证、混淆矩阵和后验解释",
+  "method_label": "类条件高斯（均值与全协方差）、缺测 EM 条件分布迭代与分层折外验证",
   "result_headline": "先看折外预测，再安排复检。",
   "column_labels": {
     "reference": "样本编号",
     "actual": "实际类型",
     "predicted": "预测类型",
     "posterior": "最高类后验",
+    "observed_count": "实测维度数",
+    "missing_features": "缺测特征",
     "cluster": "分区编号",
     "kind": "微站类型",
     "temperature": "温度 ℃",
